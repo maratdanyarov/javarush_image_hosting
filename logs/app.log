@@ -108,3 +108,12 @@
 [2025-09-01 23:11:52,470] INFO: - Action: Request for file static/script.js received
 [2025-09-01 23:11:52,481] INFO: - Action: Request for file static/assets/images/dog1.png received
 [2025-09-01 23:13:34,710] INFO: - Server stopped
+[2025-09-02 22:29:20,529] INFO: - Server started on port 8080
+[2025-09-02 22:29:52,253] INFO: - Action: Request for file static/index.html received
+[2025-09-02 22:29:52,263] INFO: - Action: Request for file static/style.css received
+[2025-09-02 22:29:52,263] INFO: - Action: Request for file static/script.js received
+[2025-09-02 22:29:52,280] INFO: - Action: Request for file static/assets/images/dog3.png received
+[2025-09-02 22:29:52,331] WARNING: - Action: Error to send file static/favicon.ico occurred
+[2025-09-02 22:32:14,413] INFO: - Action: Request for file static/style.css received
+[2025-09-02 22:32:14,417] WARNING: - Action: Error to send file static/.well-known/appspecific/com.chrome.devtools.json occurred
+[2025-09-02 22:32:52,331] INFO: - Server stopped

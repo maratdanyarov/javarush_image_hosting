@@ -77,7 +77,36 @@ document.addEventListener('DOMContentLoaded', () => {
         urlInput.value = '';
         uploadError.classList.add('hidden');
 
+        const formData = new FormData();
+        formData.append('file', file);
+
+        fetch('/upload', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    urlInput.value = data.url;
+                    uploadedImages.push({ id: Date.now(), name: file.name, url: data.url });
+                    saveImagesToLocalStorage();
+                    if (imagesView.classList.contains('hidden')) {
+
+                    } else {
+                        renderImages();
+                    }
+                } else {
+                    uploadError.textContent = data.message;
+                    uploadError.classList.remove('hidden');
+                }
+            })
+            .catch(error => {
+                console.error('Upload failed', error);
+                uploadError.textContent = 'Upload failed due to network error.';
+                uploadError.classList.remove('hidden');
+            })
     }
+
     browseBtn.addEventListener('click', () => fileInput.click());
     dropZone.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', () => {
