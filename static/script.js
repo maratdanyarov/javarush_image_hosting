@@ -55,21 +55,29 @@ document.addEventListener('DOMContentLoaded', () => {
         })
     })
 
+    function loadImagesFromLocalStorage() {
+        const storedImages = localStorage.getItem('uploadedImages');
+        if (storedImages) {
+            try {
+                uploadedImages = JSON.parse(storedImages);
+                renderImages();
+            } catch (e) {
+                console.error("Error to parse 'uploadedImages' from localStorage: ", e);
+                uploadedImages = [];
+            }
+        }
+    }
+
+    function saveImagesToLocalStorage() {
+        localStorage.setItem('uploadedImages', JSON.stringify(uploadedImages));
+    }
+
     // --- ЛОГИКА UPLOAD ---
     function handleFileUpload(file) {
         urlInput.value = '';
         uploadError.classList.add('hidden');
-        setTimeout(() => {
-            if (Math.random() < 0.8) {
-                const fakeUrl = `https://sharefile.xyz/${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
-                urlInput.value = fakeUrl;
-                uploadedImages.push({id: Date.now(), name: file.name, url: fakeUrl});
-            } else {
-                uploadError.classList.remove('hidden');
-            }
-        }, 2000);
-    }
 
+    }
     browseBtn.addEventListener('click', () => fileInput.click());
     dropZone.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', () => {
@@ -119,8 +127,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const listItem = e.target.closest('.image-item');
             const imageId = parseInt(listItem.dataset.id, 10);
             uploadedImages = uploadedImages.filter(img => img.id !== imageId);
+            saveImagesToLocalStorage();
             renderImages();
         }
     });
+    loadImagesFromLocalStorage();
     setRandomHeroImage();
 })
