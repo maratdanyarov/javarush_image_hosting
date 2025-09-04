@@ -84,27 +84,42 @@ document.addEventListener('DOMContentLoaded', () => {
             method: 'POST',
             body: formData
         })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    urlInput.value = data.url;
-                    uploadedImages.push({ id: Date.now(), name: file.name, url: data.url });
-                    saveImagesToLocalStorage();
-                    if (imagesView.classList.contains('hidden')) {
+            .then(async (response) => {
+                const contentType = response.headers.get('content-type') || '';
+                let payload = null;
 
-                    } else {
-                        renderImages();
-                    }
+                if (contentType.includes('application/json')) {
+                    payload = await response.json();
                 } else {
-                    uploadError.textContent = data.message;
-                    uploadError.classList.remove('hidden');
+                    // Пришла HTML-страница от фронтового сервера (например, 413/502)
+                    const text = await response.text();
+                    const shortText = text.slice(0, 200);
+                    throw new Error(`Server responded ${response.status}. Body: ${shortText}`);
+                }
+
+                if (!response.ok || !payload || payload.status !== 'success') {
+                    const msg = (payload && payload.message) ? payload.message : `HTTP ${response.status}`;
+                    throw new Error(msg);
+                }
+
+                // Успех
+                urlInput.value = payload.url;
+                uploadedImages.push({id: Date.now(), name: file.name, url: payload.url});
+                saveImagesToLocalStorage();
+                if (!imagesView.classList.contains('hidden')) {
+                    renderImages();
                 }
             })
-            .catch(error => {
+            .catch((error) => {
                 console.error('Upload failed', error);
-                uploadError.textContent = 'Upload failed due to network error.';
+                // Спец-текст для 413
+                if (String(error).includes('413')) {
+                    uploadError.textContent = 'File is too large. Please upload a smaller file.';
+                } else {
+                    uploadError.textContent = 'Upload failed. ' + error.message;
+                }
                 uploadError.classList.remove('hidden');
-            })
+            });
     }
 
     browseBtn.addEventListener('click', () => fileInput.click());

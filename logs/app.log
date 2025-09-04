@@ -117,3 +117,12 @@
 [2025-09-02 22:32:14,413] INFO: - Action: Request for file static/style.css received
 [2025-09-02 22:32:14,417] WARNING: - Action: Error to send file static/.well-known/appspecific/com.chrome.devtools.json occurred
 [2025-09-02 22:32:52,331] INFO: - Server stopped
+[2025-09-03 21:48:15,157] INFO: - Server started on port 8080
+[2025-09-03 21:48:20,128] WARNING: - Action: Unexpected GET request: /. Probably Nginx is not properly configured or it is the client error.
+[2025-09-03 21:48:20,146] WARNING: - Action: Unexpected GET request: /.well-known/appspecific/com.chrome.devtools.json. Probably Nginx is not properly configured or it is the client error.
+[2025-09-03 21:48:20,217] WARNING: - Action: Unexpected GET request: /favicon.ico. Probably Nginx is not properly configured or it is the client error.
+[2025-09-03 21:48:23,332] WARNING: - Action: Unexpected GET request: /. Probably Nginx is not properly configured or it is the client error.
+[2025-09-03 21:48:23,342] WARNING: - Action: Unexpected GET request: /.well-known/appspecific/com.chrome.devtools.json. Probably Nginx is not properly configured or it is the client error.
+[2025-09-03 21:48:52,451] INFO: - Server stopped
+[2025-09-03 21:50:03,156] INFO: - Server started on port 8000
+[2025-09-03 21:50:05,765] INFO: - Server stopped
