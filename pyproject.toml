@@ -1,0 +1,11 @@
+[project]
+name = "image-hosting-app"
+version = "0.1.0"
+description = "Simple image hosting app behind nginx"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pillow>=11.3.0",
+]
+
+[tool.uv]
