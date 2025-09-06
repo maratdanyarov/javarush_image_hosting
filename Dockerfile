@@ -12,12 +12,14 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 
 RUN uv sync --frozen --no-install-project
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="/app/.venv/bin:${PATH}"
 
-COPY app.py .
+COPY src/ ./src/
 COPY static/ ./static/
 
-ENV PATH="/app/.venv/bin:${PATH}"
+ENV PYTHONPATH=/app/src
 
 EXPOSE 8000
 
-CMD ["python", "app.py"]
+CMD ["python", "-m", "image_hosting.app"]
