@@ -1,3 +1,7 @@
+"""
+    HTTP upload controller
+    Handles HTTP POST requests for uploading images via multipart/form-data.
+"""
 import cgi
 import http.server
 
@@ -9,16 +13,18 @@ from src.image_hosting.utils import json_response
 
 class UploadController:
     """
-    HTTP upload controller.
-    Knows about headers, multipart and form fields.
-    Delegates business logic to ImageService.
+    Handles the HTTP upload logic.
+    - Validates path, headers, and content.
+    - Parses multipart form data.
+    - Delegates image processing to ImageService.
     """
 
     def __init__(self, image_service: ImageService | None = None):
+        """Initialize UploadController with optional custom ImageService."""
         self.image_service = image_service or ImageService()
 
-    # Entry point
     def handle_post(self, handler: http.server.BaseHTTPRequestHandler) -> None:
+        """Main POST handler: orchestrates file upload validation, parsing and saving."""
         if not self._is_upload_path(handler):
             logger.warning(f"Unknown POST path: {handler.path}")
             json_response(handler, 404, {"status": "error", "message": "Not Found"})
@@ -61,8 +67,8 @@ class UploadController:
             },
         )
 
-    # Helper functions
     def _is_upload_path(self, handler: http.server.BaseHTTPRequestHandler) -> bool:
+        """Check whether the request is targeting the correct /upload path."""
         return urlparse(handler.path).path == "/upload"
 
     def _validate_headers(self, handler: http.server.BaseHTTPRequestHandler) -> tuple[bool, int]:
@@ -109,7 +115,7 @@ class UploadController:
             return None
 
     def _extract_file_field(self, handler: http.server.BaseHTTPRequestHandler, form):
-        """Return a single file field. Respond if if missing/invalid."""
+        """Extract and validate 'file' field from multipart form; respond with error if invalid."""
         if "file" not in form:
             logger.warning("Upload Error: 'file' field not found in form.")
             json_response(handler, 400, {"status": "error", "message": "File field not found in form"})
@@ -127,7 +133,7 @@ class UploadController:
         return file_field
 
     def _read_file_bytes(self, handler: http.server.BaseHTTPRequestHandler, file_field):
-        """Read uploaded bytes. Respond on read failure."""
+        """Read bytes from uploaded file; respond with error if reading fails."""
         try:
             return file_field.file.read()
         except Exception as e:
@@ -136,7 +142,7 @@ class UploadController:
             return None
 
     def _check_runtime_size(self, handler: http.server.BaseHTTPRequestHandler, file_bytes: bytes) -> bool:
-        """Runtime guard for size (same behavior/messages as before)."""
+        """Ensure uploaded file does not exceed runtime MAX_FILE_SIZE limit."""
         if len(file_bytes) > MAX_FILE_SIZE:
             logger.warning(f"Upload Error: file is too large {len(file_bytes)} bytes.")
             json_response(
@@ -150,7 +156,7 @@ class UploadController:
     def _save_via_service(
             self, handler: http.server.BaseHTTPRequestHandler, file_bytes: bytes, original_filename: str
     ):
-        """Call ImageService and translate exceptions into the same HTTP response."""
+        """Delegate image processing to ImageService and handle potential exceptions."""
         try:
             return self.image_service.handle(file_bytes, original_filename)
         except ValueError as e:
