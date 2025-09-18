@@ -1,3 +1,14 @@
+/**
+ * Image Hosting Frontend Script
+ *
+ * Handles UI logic for the single-page image hosting application:
+ * - Hero screen logic and transition to the main app
+ * - Navigation between upload and gallery views
+ * - Image upload via drag-and-drop or file input
+ * - Upload error handling and server response parsing
+ * - Rendering uploaded images using localStorage for persistence
+ * - Copy-to-clipboard feature and image deletion
+ */
 document.addEventListener('DOMContentLoaded', () => {
     const heroPage = document.getElementById('hero-page');
     const mainAppPage = document.getElementById('main-app-page');

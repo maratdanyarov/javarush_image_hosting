@@ -10,6 +10,7 @@ venv/
 
 # PyCharm
 .idea/
+/src/image_hosting/__pycache__/
 
 # Nginx
 *.pid

@@ -1,3 +1,7 @@
+"""
+Configuration module for image hosting backend.
+Defines paths, limits, logging, and supported formats.
+"""
 import os
 import logging
 from pathlib import Path
