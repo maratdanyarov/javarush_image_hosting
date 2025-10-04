@@ -6,9 +6,16 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - images:/app/images
-      - logs:/app/logs
+      - ./images:/app/images
+      - ./logs:/app/logs
     restart: always
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_NAME=images_db
+      - DB_USER=postgres
+      - DB_PASSWORD=password
 
   nginx:
     image: nginx:latest
@@ -27,11 +34,14 @@ services:
     environment:
       POSTGRES_DB: images_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
     volumes:
-      - db_data:/var
+      - db_data:/var/lib/postgresql/data
+    restart: always
+
 volumes:
   images:
   logs:
+  db_data:

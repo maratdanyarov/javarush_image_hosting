@@ -3,6 +3,8 @@ import http.server
 
 from src.image_hosting.config import logger
 from src.image_hosting.controllers.upload_controller import UploadController
+from src.image_hosting.database import test_connection, init_database
+
 
 class ImageHostingHandler(http.server.BaseHTTPRequestHandler):
     """
@@ -44,5 +46,26 @@ def run_server(server_class=http.server.HTTPServer, handler_class=ImageHostingHa
         httpd.server_close()
         logger.info(f"Server stopped.")
 
+def initialize_app():
+    """Application initialization: test DB connection and create table."""
+    logger.info("Initializing app...")
+
+    if test_connection():
+        logger.info("Database connection established.")
+
+        if init_database():
+            logger.info("Database is initialized and ready.")
+        else:
+            logger.error("Database initialization error: table is not created.")
+            return False
+    else:
+        logger.error("ERROR: Database connection failed. Check docker compose settings.")
+        return False
+
+    return True
+
 if __name__ == "__main__":
-    run_server()
+    if initialize_app():
+        run_server()
+    else:
+        logger.error("ERROR: Application initialization failed. Server is not started.")
