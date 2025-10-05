@@ -2,6 +2,7 @@
 
 import io
 import os
+import sys
 import uuid
 from typing import Tuple
 
@@ -9,6 +10,7 @@ from PIL import Image, UnidentifiedImageError
 
 from src.image_hosting.config import UPLOAD_DIR, MAX_FILE_SIZE, ALLOWED_EXTENSIONS, logger
 from src.image_hosting.utils import infer_ext_from_format
+from src.image_hosting.database import init_database, test_connection, get_connection
 
 JPEG = 'JPEG'
 PNG = 'PNG'
@@ -82,6 +84,21 @@ class ImageService:
 
         try:
             image.save(target_path, format=img_format, **save_kwargs)
+            try:
+                conn = get_connection()
+                if conn:
+                    cursor = conn.cursor()
+                    insert_query = """
+                    INSERT INTO images (filename, original_name, size, file_type)
+                        VALUES (%s, %s, %s, %s)
+                    """
+                    cursor.execute(insert_query, (unique_name, original_filename, sys.getsizeof(image.tobytes()), img_format))
+                    conn.commit()
+                    cursor.close()
+                    conn.close()
+                    logger.info(f"Metadata is successfully saved into database: {unique_name}")
+            except Exception as e:
+                logger.error(f"Failed to save image: {e}")
         finally:
             try:
                 image.close()

@@ -2,7 +2,7 @@
 import http.server
 
 from src.image_hosting.config import logger
-from src.image_hosting.controllers.upload_controller import UploadController
+from src.image_hosting.upload_controllers.upload_upload_controller import UploadController
 from src.image_hosting.database import test_connection, init_database
 
 
@@ -12,7 +12,7 @@ class ImageHostingHandler(http.server.BaseHTTPRequestHandler):
     - Delegates POST /upload to UploadController.
     - Rejects GET requests (static files expected via Nginx).
     """
-    controller = UploadController()
+    upload_controller = UploadController()
 
     def log_message(self, format: str, *args) -> None:
         """Log HTTP requests using the configured logger."""
@@ -28,7 +28,7 @@ class ImageHostingHandler(http.server.BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         """Delegate POST requests to the UploadController."""
-        self.controller.handle_post(self)
+        self.upload_controller.handle_post(self)
 
 def run_server(server_class=http.server.HTTPServer, handler_class=ImageHostingHandler, port: int = 8000) -> None:
     """
