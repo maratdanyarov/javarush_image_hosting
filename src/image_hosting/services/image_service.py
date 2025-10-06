@@ -1,15 +1,16 @@
 """Image loading business logic: validation, verification, and saving uploaded images."""
-
+import http
 import io
 import os
 import sys
 import uuid
-from typing import Tuple
+from typing import Tuple, List, Dict, Any
 
 from PIL import Image, UnidentifiedImageError
 
 from src.image_hosting.config import UPLOAD_DIR, MAX_FILE_SIZE, ALLOWED_EXTENSIONS, logger
 from src.image_hosting.utils import infer_ext_from_format
+from src.image_hosting.utils import json_response
 from src.image_hosting.database import init_database, test_connection, get_connection
 
 JPEG = 'JPEG'
@@ -89,10 +90,11 @@ class ImageService:
                 if conn:
                     cursor = conn.cursor()
                     insert_query = """
-                    INSERT INTO images (filename, original_name, size, file_type)
-                        VALUES (%s, %s, %s, %s)
-                    """
-                    cursor.execute(insert_query, (unique_name, original_filename, sys.getsizeof(image.tobytes()), img_format))
+                                   INSERT INTO images (filename, original_name, size, file_type)
+                                   VALUES (%s, %s, %s, %s) \
+                                   """
+                    cursor.execute(insert_query,
+                                   (unique_name, original_filename, sys.getsizeof(image.tobytes()), img_format))
                     conn.commit()
                     cursor.close()
                     conn.close()
@@ -116,3 +118,37 @@ class ImageService:
         """
         image = self.validate_bytes(file_bytes, original_filename)
         return self.save_image(image, original_filename)
+
+    def get_images_list(self) -> List[Dict[str, Any]]:
+        """Fetch images from DB and return as list of dicts."""
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+                       SELECT id, filename, original_name, size, upload_time, file_type
+                       FROM images
+                       ORDER BY upload_time DESC
+                       """)
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        items: List[Dict[str, Any]] = []
+        for r in rows:
+            upload_time = r[4]
+            if upload_time is None:
+                upload_iso = None
+            elif hasattr(upload_time, "isoformat"):
+                upload_iso = upload_time.isoformat()
+            else:
+                upload_iso = str(upload_time)
+
+            items.append({
+                "id": r[0],
+                "filename": r[1],
+                "original_name": r[2],
+                "size": r[3],
+                "upload_time": upload_iso,
+                "file_type": r[5],
+                "url": f"/images/{r[1]}",
+            })
+        return items

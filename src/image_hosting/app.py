@@ -1,9 +1,13 @@
 """Entry point and HTTP handler for the image hosting backend server."""
 import http.server
+import re
+from urllib.parse import urlparse
 
 from src.image_hosting.config import logger
-from src.image_hosting.upload_controllers.upload_upload_controller import UploadController
+from src.image_hosting.controllers.image_list_controller import ImageListController
+from src.image_hosting.controllers.upload_controller import UploadController
 from src.image_hosting.database import test_connection, init_database
+from src.image_hosting.utils import json_response
 
 
 class ImageHostingHandler(http.server.BaseHTTPRequestHandler):
@@ -13,22 +17,33 @@ class ImageHostingHandler(http.server.BaseHTTPRequestHandler):
     - Rejects GET requests (static files expected via Nginx).
     """
     upload_controller = UploadController()
+    image_list_controller = ImageListController()
 
     def log_message(self, format: str, *args) -> None:
         """Log HTTP requests using the configured logger."""
         logger.info("%s - " + format, self.address_string(), *args)
 
     def do_GET(self) -> None:
-        """Handle unexpected GET requests with a 404 response."""
-        logger.warning(f"Unexpected GET request to backend {self.path} Static should be handled by Nginx.")
-        self.send_response(404)
-        self.send_header('Content-type', 'text/html; charset=utf-8')
-        self.end_headers()
-        self.wfile.write(b'404 Not Found (Static served by Nginx).')
+        """Handle GET requests and delegate them to ImageListController."""
+        parsed_path = urlparse(self.path)
+        if parsed_path.path == "/images-list":
+            self.image_list_controller.handle_get(self)
+        else:
+            logger.warning(f"Unexpected GET request to backend {self.path}. Static should be handled by Nginx.")
+            json_response(self, 404, {"status": "error", "message": "Not Found"})
 
     def do_POST(self) -> None:
         """Delegate POST requests to the UploadController."""
         self.upload_controller.handle_post(self)
+
+    def do_delete(self) -> None:
+        """Delegate DELETE requests to the DeleteController."""
+        parsed_path = urlparse(self.path)
+        match = re.match(r'/delete/(\d+)', parsed_path.path)
+        if match:
+            image_id = int(match.group(1))
+
+
 
 def run_server(server_class=http.server.HTTPServer, handler_class=ImageHostingHandler, port: int = 8000) -> None:
     """
@@ -45,6 +60,7 @@ def run_server(server_class=http.server.HTTPServer, handler_class=ImageHostingHa
     finally:
         httpd.server_close()
         logger.info(f"Server stopped.")
+
 
 def initialize_app():
     """Application initialization: test DB connection and create table."""
@@ -63,6 +79,7 @@ def initialize_app():
         return False
 
     return True
+
 
 if __name__ == "__main__":
     if initialize_app():

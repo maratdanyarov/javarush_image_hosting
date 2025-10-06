@@ -4,7 +4,7 @@ import psycopg2
 from src.image_hosting.config import logger
 
 DB_CONFIG = {
-    'host': os.environ.get('DB_HOST', 'localhost'),
+    'host': os.environ.get('DB_HOST', 'db'),
     'database': os.environ.get('DB_NAME', 'images_db'),
     'user': os.environ.get('DB_USER', 'postgres'),
     'password': os.environ.get('DB_PASSWORD', 'password'),
