@@ -145,6 +145,7 @@ class ImageService:
             items.append({
                 "id": r[0],
                 "filename": r[1],
+
                 "original_name": r[2],
                 "size": r[3],
                 "upload_time": upload_iso,
@@ -152,3 +153,38 @@ class ImageService:
                 "url": f"/images/{r[1]}",
             })
         return items
+
+    def handle_delete_image(self, image_id: int) -> bool:
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT filename FROM images WHERE id = %s", (image_id,))
+            result = cursor.fetchone()
+            if not result:
+                cursor.close()
+                conn.close()
+                return False
+            filename = result[0]
+            file_path = os.path.join(self.upload_dir, filename)
+            cursor.execute("DELETE FROM images WHERE id = %s", (image_id,))
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except Exception as fe:
+                logger.error(f"Failed to delete image {filename}: {fe}")
+
+            conn.commit()
+            cursor.close()
+            conn.close()
+            logger.info(f"Deleted image '{filename}'.")
+            return True
+        except Exception:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            try:
+                conn.close()
+            except Exception:
+                pass
+            raise

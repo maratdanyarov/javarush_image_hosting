@@ -4,6 +4,7 @@ import re
 from urllib.parse import urlparse
 
 from src.image_hosting.config import logger
+from src.image_hosting.controllers.delete_image_controller import DeleteImageController
 from src.image_hosting.controllers.image_list_controller import ImageListController
 from src.image_hosting.controllers.upload_controller import UploadController
 from src.image_hosting.database import test_connection, init_database
@@ -18,6 +19,7 @@ class ImageHostingHandler(http.server.BaseHTTPRequestHandler):
     """
     upload_controller = UploadController()
     image_list_controller = ImageListController()
+    delete_image_controller = DeleteImageController()
 
     def log_message(self, format: str, *args) -> None:
         """Log HTTP requests using the configured logger."""
@@ -36,13 +38,14 @@ class ImageHostingHandler(http.server.BaseHTTPRequestHandler):
         """Delegate POST requests to the UploadController."""
         self.upload_controller.handle_post(self)
 
-    def do_delete(self) -> None:
+    def do_DELETE(self) -> None:
         """Delegate DELETE requests to the DeleteController."""
         parsed_path = urlparse(self.path)
         match = re.match(r'/delete/(\d+)', parsed_path.path)
         if match:
             image_id = int(match.group(1))
-
+            self.delete_image_controller.delete_image(self, image_id)
+        return json_response(self, 404, {"status": "error", "message": "Not Found"})
 
 
 def run_server(server_class=http.server.HTTPServer, handler_class=ImageHostingHandler, port: int = 8000) -> None:
