@@ -1,17 +1,16 @@
 """Image loading business logic: validation, verification, and saving uploaded images."""
-import http
 import io
 import os
 import sys
 import uuid
 from typing import Tuple, List, Dict, Any
+from math import ceil
 
 from PIL import Image, UnidentifiedImageError
 
 from src.image_hosting.config import UPLOAD_DIR, MAX_FILE_SIZE, ALLOWED_EXTENSIONS, logger
+from src.image_hosting.database import get_connection
 from src.image_hosting.utils import infer_ext_from_format
-from src.image_hosting.utils import json_response
-from src.image_hosting.database import init_database, test_connection, get_connection
 
 JPEG = 'JPEG'
 PNG = 'PNG'
@@ -154,8 +153,67 @@ class ImageService:
             })
         return items
 
+    def get_images_page(self, page: int = 1, per_page: int = 10):
+        page = max(1, int(page))
+        offset = (page - 1) * per_page
+
+        conn = get_connection()
+        if not conn:
+            return {"images": [], "pagination": {
+                "current_page": page, "per_page": per_page,
+                "total": 0, "total_pages": 1,
+                "has_prev": False, "has_next": False
+            }}
+
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT COUNT(*) FROM images")
+        total = cursor.fetchone()[0] or 0
+
+        cursor.execute("""
+                       SELECT id, filename, original_name, size, upload_time, file_type
+                       FROM images
+                       ORDER BY upload_time DESC
+                           LIMIT %s
+                       OFFSET %s
+                       """, (per_page, offset))
+        rows = cursor.fetchall()
+        cursor.close();
+        conn.close()
+
+        items = []
+        for r in rows:
+            up = r[4]
+            upload_iso = up.isoformat() if hasattr(up, "isoformat") else (str(up) if up else None)
+            items.append({
+                "id": r[0],
+                "filename": r[1],
+                "original_name": r[2],
+                "size": r[3],
+                "upload_time": upload_iso,
+                "file_type": r[5],
+                "url": f"/images/{r[1]}",
+            })
+
+        total_pages = max(1, ceil(total / per_page)) if per_page else 1
+        return {
+            "images": items,
+            "pagination": {
+                "current_page": page,
+                "per_page": per_page,
+                "total": total,
+                "total_pages": total_pages,
+                "has_prev": page > 1,
+                "has_next": page < total_pages,
+            }
+        }
+
     def handle_delete_image(self, image_id: int) -> bool:
         conn = get_connection()
+        if not conn:
+            logger.error("DB connection is None in handle_delete_image")
+            return False
+
         try:
             cursor = conn.cursor()
             cursor.execute("SELECT filename FROM images WHERE id = %s", (image_id,))
