@@ -27,6 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     let uploadedImages = [];
 
+     function setRandomHeroImage() {
+        const randomIndex = Math.floor(Math.random() * heroImages.length);
+        const randomImage = heroImages[randomIndex];
+        heroPage.style.backgroundImage = `url(${randomImage})`;
+    }
+
     gotoAppButton.addEventListener(
         'click',
         () => {
@@ -118,10 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const response = await fetch(`/images-list?page=${page}`);
                 const data = await response.json();
-                console.log(data);
-                console.log(data.pagination);
-                console.log(data.images);
-                console.log(data.images.length);
 
                 imageList.innerHTML = '';
                 const paginationContainer = document.getElementById('pagination');
@@ -195,4 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-})})
+
+})
+                  setRandomHeroImage();
+})
