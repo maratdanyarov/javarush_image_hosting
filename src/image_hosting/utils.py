@@ -1,4 +1,3 @@
-"""Utility functions for HTTP response formatting and file type handling."""
 import http.server
 import json
 

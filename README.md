@@ -88,6 +88,15 @@ You can configure the following in `config.py`:
 - `MAX_FILE_SIZE`: Max upload size (in bytes)
 - `ALLOWED_EXTENSIONS`: Permitted file types
 
+## Database backup (PostgreSQL в Docker)
+
+**Manual backup (via embedded pg_dump):**
+```bash
+ts=$(date +'%F_%H%M%S') \
+&& docker exec -t postgres_container \
+   pg_dump -U postgres images_db > "backups/backup_${ts}.sql"
+```
+
 ## Notes
 
 - This project is for educational or private use; not recommended for public internet deployment without further hardening.
