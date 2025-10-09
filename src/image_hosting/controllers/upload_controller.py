@@ -1,7 +1,3 @@
-"""
-    HTTP upload controller
-    Handles HTTP POST requests for uploading images via multipart/form-data.
-"""
 import cgi
 import http.server
 
@@ -12,21 +8,25 @@ from src.image_hosting.services.image_service import ImageService
 from src.image_hosting.utils import json_response
 
 class UploadController:
-    """
-    Handles the HTTP upload logic.
-    - Validates path, headers, and content.
-    - Parses multipart form data.
-    - Delegates image processing to ImageService.
+    """Controller that handles image upload requests.
+    Responsibilities:
+        - Validate request path, headers, and payload size.
+        - Parse multipart/form-data.
+        - Delegate image verification/saving to ImageService.
     """
 
     def __init__(self, image_service: ImageService | None = None):
-        """Initialize UploadController with optional custom ImageService."""
         self.image_service = image_service or ImageService()
 
     def handle_post(self, handler: http.server.BaseHTTPRequestHandler) -> None:
-        """Main POST handler: orchestrates file upload validation, parsing and saving."""
+        """Entry point for handling HTTP POST upload requests.
+        Orchestrates validation, multipart parsing, size checks, and saving.
+        Args:
+            handler: Active HTTP request handler instance.
+        """
+        logger.info(f"Received upload request: path={handler.path}")
         if not self._is_upload_path(handler):
-            logger.warning(f"Unknown POST path: {handler.path}")
+            logger.warning(f"Upload rejected: unknown POST path: {handler.path}")
             json_response(handler, 404, {"status": "error", "message": "Not Found"})
             return
 
@@ -43,10 +43,12 @@ class UploadController:
             return
 
         original_filename = file_field.filename
+        logger.debug("Upload filename extracted: {original_filename}")
 
         file_bytes = self._read_file_bytes(handler, file_field)
         if file_bytes is None:
             return
+        logger.debug(f"Read {len(file_bytes)} bytes from uploaded file: {original_filename}")
 
         if not self._check_runtime_size(handler, file_bytes):
             return
@@ -55,6 +57,7 @@ class UploadController:
         if result is None:
             return
         unique_name, file_url = result
+        logger.info(f"File uploaded successfully: name={unique_name} url={file_url}")
 
         json_response(
             handler,
@@ -68,13 +71,25 @@ class UploadController:
         )
 
     def _is_upload_path(self, handler: http.server.BaseHTTPRequestHandler) -> bool:
-        """Check whether the request is targeting the correct /upload path."""
+        """
+        Return True if the request targets the /upload endpoint.
+        Args:
+            handler: Active HTTP request handler instance.
+        """
         return urlparse(handler.path).path == "/upload"
 
     def _validate_headers(self, handler: http.server.BaseHTTPRequestHandler) -> tuple[bool, int]:
-        """Validate Content-Type (multipart/form-data with boundary) and Content-Length."""
+        """
+        Validate Content-Type (multipart/form-data with boundary) and Content-Length.
+        Args:
+            handler: Active HTTP request handler instance.
+        Returns:
+            Tuple of (is_valid, content_length).
+        """
         ctype, pdict = cgi.parse_header(handler.headers.get("Content-Type",""))
         boundary = pdict.get("boundary")
+        logger.debug("Parsed headers: Content-Type=%s, boundary=%s", ctype, bool(boundary))
+
         if ctype != "multipart/form-data" or not boundary:
             logger.warning("UploadError: wrong Content-Type or missing boundary.")
             json_response(handler, 400, {"status": "error", "message": "Expecting multipart/form-data"})
@@ -95,17 +110,25 @@ class UploadController:
             json_response(handler, 413, {"status": "error", "message": "File is too large"})
             return False, 0
 
+        logger.debug(f"Header validation passed: Content-Length={content_length}")
         return True, content_length
 
     def _parse_multipart(self, handler: http.server.BaseHTTPRequestHandler, content_length: int):
-        """Parse multipart form and return FieldStorage. Respond one error."""
+        """Parse multipart form payload and return FieldStorage.
+        Sends a 400 JSON response on failure.
+        Args:
+            handler: Active HTTP request handler instance.
+            content_length: Declared request payload size.
+        Returns:
+            cgi.FieldStorage on success; None on error.
+        """
         try:
             return cgi.FieldStorage(
                 fp=handler.rfile,
                 headers=handler.headers,
                 environ={
                     "REQUEST_METHOD": "POST",
-                    "CONTENT_TYPE": handler.headers.get("Content-Length", ""),
+                    "CONTENT_TYPE": handler.headers.get("Content-Type", ""),
                     "CONTENT_LENGTH": str(content_length),
                 },
             )
@@ -115,7 +138,13 @@ class UploadController:
             return None
 
     def _extract_file_field(self, handler: http.server.BaseHTTPRequestHandler, form):
-        """Extract and validate 'file' field from multipart form; respond with error if invalid."""
+        """Extract and validate the 'file' field from the parsed form.
+        Args:
+            handler: Active HTTP request handler instance.
+            form: Parsed cgi.FieldStorage.
+        Returns:
+            The file field object on success; None on validation error.
+        """
         if "file" not in form:
             logger.warning("Upload Error: 'file' field not found in form.")
             json_response(handler, 400, {"status": "error", "message": "File field not found in form"})
@@ -133,7 +162,13 @@ class UploadController:
         return file_field
 
     def _read_file_bytes(self, handler: http.server.BaseHTTPRequestHandler, file_field):
-        """Read bytes from uploaded file; respond with error if reading fails."""
+        """Read bytes from the uploaded file stream.
+        Args:
+            handler: Active HTTP request handler instance.
+            file_field: The file field from FieldStorage.
+        Returns:
+            Raw bytes on success; None on read error.
+        """
         try:
             return file_field.file.read()
         except Exception as e:
@@ -142,7 +177,14 @@ class UploadController:
             return None
 
     def _check_runtime_size(self, handler: http.server.BaseHTTPRequestHandler, file_bytes: bytes) -> bool:
-        """Ensure uploaded file does not exceed runtime MAX_FILE_SIZE limit."""
+        """
+        Validate runtime file size against MAX_FILE_SIZE.
+        Args:
+            handler: Active HTTP request handler instance.
+            file_bytes: Raw uploaded bytes.
+        Returns:
+            True if size is acceptable; False otherwise (and responds with 413).
+        """
         if len(file_bytes) > MAX_FILE_SIZE:
             logger.warning(f"Upload Error: file is too large {len(file_bytes)} bytes.")
             json_response(
@@ -156,12 +198,22 @@ class UploadController:
     def _save_via_service(
             self, handler: http.server.BaseHTTPRequestHandler, file_bytes: bytes, original_filename: str
     ):
-        """Delegate image processing to ImageService and handle potential exceptions."""
+        """
+        Delegate image processing to ImageService and handle service-layer errors.
+        Args:
+            handler: Active HTTP request handler instance.
+            file_bytes: Raw uploaded bytes.
+            original_filename: Client-provided original file name.
+        Returns:
+            Tuple (unique_name, file_url) on success; None on error with response sent.
+        """
         try:
+            logger.debug(f"Delegating to ImageService.handle for file: {original_filename}")
             return self.image_service.handle(file_bytes, original_filename)
         except ValueError as e:
             msg = str(e)
             status = 400
+            logger.error(f"Upload validation error: {msg} ({original_filename})")
             if msg == "Failed to reopen image.":
                 status = 400
             elif msg.startswith("File exceeds"):
@@ -170,6 +222,6 @@ class UploadController:
             json_response(handler, status, {"status": "error", "message": msg})
             return None
         except Exception as e:
-            logger.exception(f"Uploading error for {original_filename}: {e}")
+            logger.exception(f"Unexpected upload error for {original_filename}: {e}")
             json_response(handler, 500, {"status": "error", "message": "Uploading file error."})
             return None
