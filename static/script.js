@@ -129,12 +129,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const paginationContainer = document.getElementById('pagination');
 
                 if (data.images.length === 0) {
-                    imageList.innerHTML = '<p style="text-align:center;">Нет изображений</p>';
-                    paginationContainer.innerHTML = ''; // Очищаем пагинацию если нет изображений
+                    imageList.innerHTML = '<p style="text-align:center;">No images</p>';
+                    paginationContainer.innerHTML = '';
                     return;
                 }
 
-                // Отрисовка изображений
+
                 data.images.forEach(image => {
                     const templateClone = imageItemTemplate.content.cloneNode(true);
                     templateClone.querySelector('.image-item').dataset.id = image.id;
@@ -145,19 +145,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     imageList.appendChild(templateClone);
                 });
 
-                // Обновление пагинации
+
                 if (paginationContainer) {
                     paginationContainer.innerHTML = `
                         <button id="prev-page" ${!data.pagination.has_prev ? 'disabled' : ''}>
-                            Предыдущая страница
+                            Previous Page
                         </button>
-                        <span>Страница ${data.pagination.current_page} из ${data.pagination.total_pages}</span>
+                        <span>Page ${data.pagination.current_page} out of ${data.pagination.total_pages}</span>
                         <button id="next-page" ${!data.pagination.has_next ? 'disabled' : ''}>
-                            Следующая страница
+                            Next Page
                         </button>
                     `;
 
-                    // Обработчики пагинации
+
                     document.getElementById('prev-page')?.addEventListener('click', () => {
                         if (currentPage > 1) {
                             currentPage--;
@@ -174,10 +174,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
             } catch (e) {
-                console.error('Ошибка загрузки списка:', e);
+                console.error('List loading error:', e);
                 const paginationContainer = document.getElementById('pagination');
                 if (paginationContainer) {
-                    paginationContainer.innerHTML = ''; // Очищаем пагинацию в случае ошибки
+                    paginationContainer.innerHTML = '';
                 }
             }
         }
@@ -187,13 +187,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (deleteButton) {
                     const listItem = e.target.closest('.image-item');
                     const imageId = listItem.dataset.id;
-                if (confirm('Удалить изображение?')) {
+                if (confirm('Delete Image?')) {
                      try {
                          const response = await fetch(`/delete/${imageId}`, { method: 'DELETE' });
                         if (response.ok)
                             renderImages();
             } catch (e) {
-                console.error('Ошибка удаления:', e); // Обработка ошибок
+                console.error('Deletion error:', e); // Обработка ошибок
             }
         }
     }
