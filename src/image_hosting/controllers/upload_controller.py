@@ -25,37 +25,19 @@ class UploadController:
             handler: Active HTTP request handler instance.
         """
         logger.info(f"Received upload request: path={handler.path}")
+
         if not self._is_upload_path(handler):
             logger.warning(f"Upload rejected: unknown POST path: {handler.path}")
-            json_response(handler, 404, {"status": "error", "message": "Not Found"})
-            return
+            return json_response(handler, 404, {"status": "error", "message": "Not Found"})
 
-        ok, content_length = self._validate_headers(handler)
-        if not ok:
-            return
-
-        form = self._parse_multipart(handler, content_length)
-        if form is None:
-            return
-
-        file_field = self._extract_file_field(handler, form)
-        if file_field is None:
-            return
-
-        original_filename = file_field.filename
-        logger.debug("Upload filename extracted: {original_filename}")
-
-        file_bytes = self._read_file_bytes(handler, file_field)
-        if file_bytes is None:
-            return
-        logger.debug(f"Read {len(file_bytes)} bytes from uploaded file: {original_filename}")
-
-        if not self._check_runtime_size(handler, file_bytes):
+        file_bytes, original_filename = self._validate_and_parse_upload(handler)
+        if not file_bytes:
             return
 
         result = self._save_via_service(handler, file_bytes, original_filename)
-        if result is None:
+        if not result:
             return
+
         unique_name, file_url = result
         logger.info(f"File uploaded successfully: name={unique_name} url={file_url}")
 
@@ -77,6 +59,39 @@ class UploadController:
             handler: Active HTTP request handler instance.
         """
         return urlparse(handler.path).path == "/upload"
+
+    def _validate_and_parse_upload(self, handler: http.server.BaseHTTPRequestHandler) -> tuple[bytes | None, str]:
+        """Validate headers, parse multipart data, and extract file bytes.
+        Args:
+            handler: Active HTTP request handler instance.
+        Returns:
+            Tuple of (file_bytes, original_filename) on success, (None, "") on failure.
+        """
+        ok, content_length = self._validate_headers(handler)
+        if not ok:
+            return None, ""
+
+        form = self._parse_multipart(handler, content_length)
+        if form is None:
+            return None, ""
+
+        file_field = self._extract_file_field(handler, form)
+        if file_field is None:
+            return None, ""
+
+        original_filename = file_field.filename
+        logger.debug(f"Upload filename extracted: {original_filename}")
+
+        file_bytes = self._read_file_bytes(handler, file_field)
+        if file_bytes is None:
+            return None, ""
+
+        logger.debug(f"Read {len(file_bytes)} bytes from uploaded file: {original_filename}")
+
+        if not self._check_runtime_size(handler, file_bytes):
+            return None, ""
+
+        return file_bytes, original_filename
 
     def _validate_headers(self, handler: http.server.BaseHTTPRequestHandler) -> tuple[bool, int]:
         """
