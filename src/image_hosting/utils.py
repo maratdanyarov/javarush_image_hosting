@@ -1,9 +1,6 @@
 import http.server
 import json
-
-JPEG = 'JPEG'
-PNG = 'PNG'
-GIF = 'GIF'
+import image_format
 
 def json_response(handler: http.server.BaseHTTPRequestHandler, status: int, payload: dict):
     """
@@ -27,11 +24,11 @@ def infer_ext_from_format(pillow_format: str) -> str:
         File extension including dot (e.g., '.jpg').
     """
     fmt = (pillow_format or '').upper()
-    if fmt == JPEG:
+    if fmt == image_format.JPEG:
         return '.jpg'
-    if fmt == PNG:
+    if fmt == image_format.PNG:
         return '.png'
-    if fmt == GIF:
+    if fmt == image_format.GIF:
         return '.gif'
     return '.img'
 

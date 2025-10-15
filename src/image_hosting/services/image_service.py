@@ -2,6 +2,7 @@ import io
 import os
 import sys
 import uuid
+import src.image_hosting.image_format as image_format
 from typing import Tuple, List, Dict, Any
 from math import ceil
 
@@ -10,10 +11,6 @@ from PIL import Image, UnidentifiedImageError
 from src.image_hosting.config import UPLOAD_DIR, MAX_FILE_SIZE, ALLOWED_EXTENSIONS, logger
 from src.image_hosting.database import get_connection
 from src.image_hosting.utils import infer_ext_from_format
-
-JPEG = 'JPEG'
-PNG = 'PNG'
-RGB = 'RGB'
 
 
 class ImageService:
@@ -89,12 +86,12 @@ class ImageService:
 
 
         save_kwargs: Dict[str, Any] = {}
-        if img_format == JPEG:
-            if image.mode not in (RGB, 'L'):
-                logger.debug(f"Converting image mode {image.mode} -> {RGB} for JPEG")
-                image = image.convert(RGB)
+        if img_format == image_format.JPEG:
+            if image.mode not in (image_format.RGB, 'L'):
+                logger.debug(f"Converting image mode {image.mode} -> {image_format.RGB} for JPEG")
+                image = image.convert(image_format.RGB)
             save_kwargs.update(quality=90, optimize=True, progressive=True)
-        elif img_format == PNG:
+        elif img_format == image_format.PNG:
             save_kwargs.update(optimize=True)
 
         try:
