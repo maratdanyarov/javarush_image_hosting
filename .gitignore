@@ -1,5 +1,6 @@
 images
 /logs/
+backups
 
 # Virtual environment
 .venv/
@@ -10,7 +11,7 @@ venv/
 
 # PyCharm
 .idea/
-/src/image_hosting/__pycache__/
+/src/image_hosting/services/__pycache__/
 
 # Nginx
 *.pid
